@@ -1,0 +1,10 @@
+# Private Wi-Fi credentials
+config.py
+**/config.py
+
+# Python generated files
+__pycache__/
+*.pyc
+
+# Local environment
+.venv/
