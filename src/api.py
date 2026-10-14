@@ -2,7 +2,7 @@
 import json
 
 
-def handle_request(method, path, body, led):
+def handle_request(method, path, body, led, telemetry=None):
     if method == "GET" and path == "/api/status":
         return 200, {
             "device": "ESP32 Control Hub",
@@ -30,5 +30,11 @@ def handle_request(method, path, body, led):
         return 200, {
             "led": led.get_status()
         }
+
+    if method == "GET" and path == "/api/system":
+        if telemetry is None:
+            return 503, {"error": "Telemetry unavailable"}
+
+        return 200, telemetry.get_status()
 
     return 404, {"error": "Not found"}

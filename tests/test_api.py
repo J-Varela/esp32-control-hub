@@ -56,3 +56,49 @@ def test_invalid_brightness():
 
     assert status == 400
     assert led.brightness == 0
+
+
+
+class FakeTelemetry:
+    def get_status(self):
+        return {
+            "uptime_seconds": 120,
+            "free_memory_bytes": 80000,
+            "wifi_connected": True,
+            "wifi_rssi": -55
+        }
+
+
+def test_get_system_telemetry():
+    led = FakeLED()
+    telemetry = FakeTelemetry()
+
+    status, response = handle_request(
+        "GET",
+        "/api/system",
+        "",
+        led,
+        telemetry
+    )
+
+    assert status == 200
+    assert response["uptime_seconds"] == 120
+    assert response["free_memory_bytes"] == 80000
+    assert response["wifi_connected"] is True
+    assert response["wifi_rssi"] == -55
+
+
+def test_system_telemetry_unavailable():
+    led = FakeLED()
+
+    status, response = handle_request(
+        "GET",
+        "/api/system",
+        "",
+        led
+    )
+
+    assert status == 503
+    assert response == {
+        "error": "Telemetry unavailable"
+    }

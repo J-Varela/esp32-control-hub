@@ -3,6 +3,7 @@ from led import LEDController
 from wifi import connect_wifi
 from server import start_server
 from config import WIFI_SSID, WIFI_PASSWORD
+from telemetry import DeviceTelemetry
 
 
 def main():
@@ -16,12 +17,14 @@ def main():
             WIFI_PASSWORD
         )
 
+        telemetry = DeviceTelemetry(wifi)
+
         ip = wifi.ifconfig()[0]
 
         print("Device ready!")
         print("Status API: http://" + ip + "/api/status")
 
-        start_server(led)
+        start_server(led, telemetry=telemetry)
 
     finally:
         led.off()

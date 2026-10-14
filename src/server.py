@@ -53,7 +53,7 @@ def read_request(client):
     return method, path.split("?")[0], body[:content_length].decode()
 
 
-def start_server(led, port=80):
+def start_server(led, port=80, telemetry=None):
     server = socket.socket()
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -82,13 +82,15 @@ def start_server(led, port=80):
                     method,
                     path,
                     request_body,
-                    led
+                    led,
+                    telemetry
                 )
                 body = json.dumps(result)
                 status_text = {
                     200: "OK",
                     400: "Bad Request",
-                    404: "Not Found"
+                    404: "Not Found",
+                    503: "Service Unavailable"
                 }.get(status_code, "Error")
                 response = (
                     "HTTP/1.1 {} {}\r\n"
