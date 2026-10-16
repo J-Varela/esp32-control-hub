@@ -2,13 +2,53 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from contextlib import asynccontextmanager
+from threading import Event, Thread
 
+from app.collector import TelemetryCollector
+from app.poller import run_polling
 from app.storage import CSVTelemetryStore
+
+
+
+@asynccontextmanager
+async def lifespan(app):
+    device_url = os.environ.get(
+        "ESP32_DEVICE_URL",
+        "http://192.168.1.238"
+    )
+
+    interval = 5
+    stop_event = Event()
+
+    collector = TelemetryCollector(device_url)
+    store = CSVTelemetryStore(DATA_PATH)
+
+    worker = Thread(
+        target=run_polling,
+        args=(collector, store),
+        kwargs={
+            "interval": interval,
+            "stop_event": stop_event,
+        },
+        daemon=True,
+    )
+
+    worker.start()
+    print("Telemetry polling started")
+
+    try:
+        yield
+    finally:
+        stop_event.set()
+        worker.join(timeout=interval + 5)
+        print("Telemetry polling stopped")
 
 
 app = FastAPI(
     title="ESP32 Control Hub API",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan,
 )
 
 DEFAULT_DATA_PATH = (
