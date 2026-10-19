@@ -1,6 +1,7 @@
 
 import json
 import sys
+import pytest
 from pathlib import Path
 from unittest.mock import patch
 from io import BytesIO
@@ -73,3 +74,56 @@ def test_custom_timeout():
         collector.collect()
 
     assert mock_urlopen.call_args.kwargs["timeout"] == 5
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("uptime_seconds", -1),
+        ("free_memory_bytes", "unknown"),
+        ("wifi_connected", 1),
+        ("wifi_rssi", None),
+        ("wifi_rssi", 100),
+    ],
+)
+def test_rejects_invalid_telemetry(field, value):
+    sample = {
+        "uptime_seconds": 120,
+        "free_memory_bytes": 124704,
+        "wifi_connected": True,
+        "wifi_rssi": -55,
+    }
+
+    sample[field] = value
+
+    with patch(
+        "app.collector.urlopen",
+        return_value=FakeResponse(sample),
+    ):
+        collector = TelemetryCollector(
+            "http://192.168.1.238"
+        )
+
+        with pytest.raises(ValueError):
+            collector.collect()
+
+
+def test_accepts_disconnected_wifi():
+    sample = {
+        "uptime_seconds": 120,
+        "free_memory_bytes": 124704,
+        "wifi_connected": False,
+        "wifi_rssi": None,
+    }
+
+    with patch(
+        "app.collector.urlopen",
+        return_value=FakeResponse(sample),
+    ):
+        collector = TelemetryCollector(
+            "http://192.168.1.238"
+        )
+
+        result = collector.collect()
+
+    assert result == sample
